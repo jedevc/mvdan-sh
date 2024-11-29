@@ -1642,7 +1642,8 @@ func (p *Parser) getStmt(readEnd, binCmd, fnBody bool) *Stmt {
 			p.posErr(s.Pos(), `cannot negate a command multiple times`)
 		}
 	}
-	if s = p.gotStmtPipe(s, false); s == nil || p.err != nil {
+	// if s = p.gotStmtPipe(s, false); s == nil || p.err != nil {
+	if s = p.gotStmtPipe(s, false); s == nil {
 		return nil
 	}
 	// instead of using recursion, iterate manually
@@ -1835,7 +1836,7 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 		p.got(_Newl)
 		if b.Y = p.gotStmtPipe(&Stmt{Position: p.pos}, true); b.Y == nil || p.err != nil {
 			p.followErr(b.OpPos, b.Op.String(), "a statement")
-			break
+			// break
 		}
 		s = &Stmt{Position: s.Position}
 		s.Cmd = b
