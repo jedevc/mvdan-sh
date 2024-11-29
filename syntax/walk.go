@@ -11,17 +11,30 @@ import (
 
 func walkStmts(stmts []*Stmt, last []Comment, f func(Node) bool) {
 	for _, s := range stmts {
-		Walk(s, f)
+		Walk(nilify(s), f)
 	}
 	for _, c := range last {
-		Walk(&c, f)
+		Walk(nilify(&c), f)
 	}
 }
 
 func walkWords(words []*Word, f func(Node) bool) {
 	for _, w := range words {
-		Walk(w, f)
+		Walk(nilify(w), f)
 	}
+}
+
+type comparableNode interface {
+	comparable
+	Node
+}
+
+func nilify[T comparableNode](v T) Node {
+	var zero T
+	if v == zero {
+		return nil
+	}
+	return v
 }
 
 // Walk traverses a syntax tree in depth-first order: It starts by calling
@@ -29,6 +42,9 @@ func walkWords(words []*Word, f func(Node) bool) {
 // recursively for each of the non-nil children of node, followed by
 // f(nil).
 func Walk(node Node, f func(Node) bool) {
+	if node == nil {
+		return
+	}
 	if !f(node) {
 		return
 	}
@@ -40,41 +56,41 @@ func Walk(node Node, f func(Node) bool) {
 	case *Stmt:
 		for _, c := range node.Comments {
 			if !node.End().After(c.Pos()) {
-				defer Walk(&c, f)
+				defer Walk(nilify(&c), f)
 				break
 			}
-			Walk(&c, f)
+			Walk(nilify(&c), f)
 		}
 		if node.Cmd != nil {
-			Walk(node.Cmd, f)
+			Walk(nilify(node.Cmd), f)
 		}
 		for _, r := range node.Redirs {
-			Walk(r, f)
+			Walk(nilify(r), f)
 		}
 	case *Assign:
 		if node.Name != nil {
-			Walk(node.Name, f)
+			Walk(nilify(node.Name), f)
 		}
 		if node.Value != nil {
-			Walk(node.Value, f)
+			Walk(nilify(node.Value), f)
 		}
 		if node.Index != nil {
-			Walk(node.Index, f)
+			Walk(nilify(node.Index), f)
 		}
 		if node.Array != nil {
-			Walk(node.Array, f)
+			Walk(nilify(node.Array), f)
 		}
 	case *Redirect:
 		if node.N != nil {
-			Walk(node.N, f)
+			Walk(nilify(node.N), f)
 		}
-		Walk(node.Word, f)
+		Walk(nilify(node.Word), f)
 		if node.Hdoc != nil {
-			Walk(node.Hdoc, f)
+			Walk(nilify(node.Hdoc), f)
 		}
 	case *CallExpr:
 		for _, a := range node.Assigns {
-			Walk(a, f)
+			Walk(nilify(a), f)
 		}
 		walkWords(node.Args, f)
 	case *Subshell:
@@ -85,144 +101,144 @@ func Walk(node Node, f func(Node) bool) {
 		walkStmts(node.Cond, node.CondLast, f)
 		walkStmts(node.Then, node.ThenLast, f)
 		if node.Else != nil {
-			Walk(node.Else, f)
+			Walk(nilify(node.Else), f)
 		}
 	case *WhileClause:
 		walkStmts(node.Cond, node.CondLast, f)
 		walkStmts(node.Do, node.DoLast, f)
 	case *ForClause:
-		Walk(node.Loop, f)
+		Walk(nilify(node.Loop), f)
 		walkStmts(node.Do, node.DoLast, f)
 	case *WordIter:
-		Walk(node.Name, f)
+		Walk(nilify(node.Name), f)
 		walkWords(node.Items, f)
 	case *CStyleLoop:
 		if node.Init != nil {
-			Walk(node.Init, f)
+			Walk(nilify(node.Init), f)
 		}
 		if node.Cond != nil {
-			Walk(node.Cond, f)
+			Walk(nilify(node.Cond), f)
 		}
 		if node.Post != nil {
-			Walk(node.Post, f)
+			Walk(nilify(node.Post), f)
 		}
 	case *BinaryCmd:
-		Walk(node.X, f)
-		Walk(node.Y, f)
+		Walk(nilify(node.X), f)
+		Walk(nilify(node.Y), f)
 	case *FuncDecl:
-		Walk(node.Name, f)
-		Walk(node.Body, f)
+		Walk(nilify(node.Name), f)
+		Walk(nilify(node.Body), f)
 	case *Word:
 		for _, wp := range node.Parts {
-			Walk(wp, f)
+			Walk(nilify(wp), f)
 		}
 	case *Lit:
 	case *SglQuoted:
 	case *DblQuoted:
 		for _, wp := range node.Parts {
-			Walk(wp, f)
+			Walk(nilify(wp), f)
 		}
 	case *CmdSubst:
 		walkStmts(node.Stmts, node.Last, f)
 	case *ParamExp:
-		Walk(node.Param, f)
+		Walk(nilify(node.Param), f)
 		if node.Index != nil {
-			Walk(node.Index, f)
+			Walk(nilify(node.Index), f)
 		}
 		if node.Repl != nil {
 			if node.Repl.Orig != nil {
-				Walk(node.Repl.Orig, f)
+				Walk(nilify(node.Repl.Orig), f)
 			}
 			if node.Repl.With != nil {
-				Walk(node.Repl.With, f)
+				Walk(nilify(node.Repl.With), f)
 			}
 		}
 		if node.Exp != nil && node.Exp.Word != nil {
-			Walk(node.Exp.Word, f)
+			Walk(nilify(node.Exp.Word), f)
 		}
 	case *ArithmExp:
-		Walk(node.X, f)
+		Walk(nilify(node.X), f)
 	case *ArithmCmd:
-		Walk(node.X, f)
+		Walk(nilify(node.X), f)
 	case *BinaryArithm:
-		Walk(node.X, f)
-		Walk(node.Y, f)
+		Walk(nilify(node.X), f)
+		Walk(nilify(node.Y), f)
 	case *BinaryTest:
-		Walk(node.X, f)
-		Walk(node.Y, f)
+		Walk(nilify(node.X), f)
+		Walk(nilify(node.Y), f)
 	case *UnaryArithm:
-		Walk(node.X, f)
+		Walk(nilify(node.X), f)
 	case *UnaryTest:
-		Walk(node.X, f)
+		Walk(nilify(node.X), f)
 	case *ParenArithm:
-		Walk(node.X, f)
+		Walk(nilify(node.X), f)
 	case *ParenTest:
-		Walk(node.X, f)
+		Walk(nilify(node.X), f)
 	case *CaseClause:
-		Walk(node.Word, f)
+		Walk(nilify(node.Word), f)
 		for _, ci := range node.Items {
-			Walk(ci, f)
+			Walk(nilify(ci), f)
 		}
 		for _, c := range node.Last {
-			Walk(&c, f)
+			Walk(nilify(&c), f)
 		}
 	case *CaseItem:
 		for _, c := range node.Comments {
 			if c.Pos().After(node.Pos()) {
-				defer Walk(&c, f)
+				defer Walk(nilify(&c), f)
 				break
 			}
-			Walk(&c, f)
+			Walk(nilify(&c), f)
 		}
 		walkWords(node.Patterns, f)
 		walkStmts(node.Stmts, node.Last, f)
 	case *TestClause:
-		Walk(node.X, f)
+		Walk(nilify(node.X), f)
 	case *DeclClause:
 		for _, a := range node.Args {
-			Walk(a, f)
+			Walk(nilify(a), f)
 		}
 	case *ArrayExpr:
 		for _, el := range node.Elems {
-			Walk(el, f)
+			Walk(nilify(el), f)
 		}
 		for _, c := range node.Last {
-			Walk(&c, f)
+			Walk(nilify(&c), f)
 		}
 	case *ArrayElem:
 		for _, c := range node.Comments {
 			if c.Pos().After(node.Pos()) {
-				defer Walk(&c, f)
+				defer Walk(nilify(&c), f)
 				break
 			}
-			Walk(&c, f)
+			Walk(nilify(&c), f)
 		}
 		if node.Index != nil {
-			Walk(node.Index, f)
+			Walk(nilify(node.Index), f)
 		}
 		if node.Value != nil {
-			Walk(node.Value, f)
+			Walk(nilify(node.Value), f)
 		}
 	case *ExtGlob:
-		Walk(node.Pattern, f)
+		Walk(nilify(node.Pattern), f)
 	case *ProcSubst:
 		walkStmts(node.Stmts, node.Last, f)
 	case *TimeClause:
 		if node.Stmt != nil {
-			Walk(node.Stmt, f)
+			Walk(nilify(node.Stmt), f)
 		}
 	case *CoprocClause:
 		if node.Name != nil {
-			Walk(node.Name, f)
+			Walk(nilify(node.Name), f)
 		}
-		Walk(node.Stmt, f)
+		Walk(nilify(node.Stmt), f)
 	case *LetClause:
 		for _, expr := range node.Exprs {
-			Walk(expr, f)
+			Walk(nilify(expr), f)
 		}
 	case *TestDecl:
-		Walk(node.Description, f)
-		Walk(node.Body, f)
+		Walk(nilify(node.Description), f)
+		Walk(nilify(node.Body), f)
 	default:
 		panic(fmt.Sprintf("syntax.Walk: unexpected node type %T", node))
 	}
